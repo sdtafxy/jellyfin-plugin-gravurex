@@ -7,6 +7,15 @@
     "owner": "sdtafxy",
     "category": "Metadata",
     "imageUrl": "https://raw.githubusercontent.com/sdtafxy/jellyfin-plugin-gravurex/main/assets/logo.png",
-    "versions": []
+    "versions": [
+      {
+        "version": "0.1.0.0",
+        "changelog": "首个正式版本。提供元数据刮削、封面 / 背景 / 缩略图三类图片、番号匹配、演员信息与头像， 并支持代理、限速、超时与缓存配置。",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/sdtafxy/jellyfin-plugin-gravurex/releases/download/v0.1.0/jellyfin-plugin-gravurex.zip",
+        "checksum": "c3c9bb3121276c74b1752feaaa521df8",
+        "timestamp": "2026-09-15T13:13:22Z"
+      }
+    ]
   }
 ]
