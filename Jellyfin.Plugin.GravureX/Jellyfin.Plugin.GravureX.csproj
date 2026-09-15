@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The plugin version lives in build.yaml so the manifest and the assembly can
+    never drift apart. Jellyfin reads the version off the assembly, so a stale
+    AssemblyVersion here shows up as the wrong version in the dashboard.
+  -->
+  <PropertyGroup>
+    <PluginBuildYaml>$(MSBuildThisFileDirectory)../build.yaml</PluginBuildYaml>
+    <PluginBuildYamlContent>$([System.IO.File]::ReadAllText($(PluginBuildYaml)))</PluginBuildYamlContent>
+    <PluginVersion>$([System.Text.RegularExpressions.Regex]::Match($(PluginBuildYamlContent), 'version:\s*&quot;([0-9.]+)&quot;').Groups[1].Value)</PluginVersion>
+  </PropertyGroup>
+
+  <Target Name="ValidatePluginVersion" BeforeTargets="BeforeBuild">
+    <Error Condition="'$(PluginVersion)' == ''"
+           Text="Could not read the version from $(PluginBuildYaml)." />
+  </Target>
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Version>$(PluginVersion)</Version>
+    <AssemblyVersion>$(PluginVersion)</AssemblyVersion>
+    <FileVersion>$(PluginVersion)</FileVersion>
+    <RootNamespace>Jellyfin.Plugin.GravureX</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <EnableDefaultNoneItems>false</EnableDefaultNoneItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Provided by the Jellyfin server at runtime, so never copy them to the output. -->
+    <PackageReference Include="Jellyfin.Controller" Version="10.11.11" ExcludeAssets="runtime" />
+    <PackageReference Include="Jellyfin.Model" Version="10.11.11" ExcludeAssets="runtime" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.13.0" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Configuration/configPage.html" />
+  </ItemGroup>
+
+</Project>

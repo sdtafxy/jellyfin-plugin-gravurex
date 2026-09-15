@@ -1,0 +1,12 @@
+[
+  {
+    "guid": "9bd97d01-52e6-4219-9294-25e80b7fb254",
+    "name": "GravureX",
+    "description": "从 DMM 公开商品页读取标题、演员、发售日期、时长、厂商与类型等信息，并提供封面、背景与 缩略图三类图片。元数据按原始发布内容保留日文，无需 API Key 或登录。",
+    "overview": "为日本 DVD / Blu-ray 影片（含写真偶像类）补齐元数据与图片。",
+    "owner": "sdtafxy",
+    "category": "Metadata",
+    "imageUrl": "https://raw.githubusercontent.com/sdtafxy/jellyfin-plugin-gravurex/main/assets/logo.png",
+    "versions": []
+  }
+]

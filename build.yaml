@@ -1,0 +1,20 @@
+---
+name: "GravureX"
+guid: "9BD97D01-52E6-4219-9294-25E80B7FB254"
+version: "0.1.0.0"
+targetAbi: "10.11.0.0"
+framework: "net9.0"
+owner: "sdtafxy"
+overview: "为日本 DVD / Blu-ray 影片（含写真偶像类）补齐元数据与图片。"
+description: >
+  从 DMM 公开商品页读取标题、演员、发售日期、时长、厂商与类型等信息，并提供封面、背景与
+  缩略图三类图片。元数据按原始发布内容保留日文，无需 API Key 或登录。
+category: "Metadata"
+imageUrl: "https://raw.githubusercontent.com/sdtafxy/jellyfin-plugin-gravurex/main/assets/logo.png"
+artifacts:
+  - "Jellyfin.Plugin.GravureX.dll"
+  - "HtmlAgilityPack.dll"
+  - "SixLabors.ImageSharp.dll"
+changelog: >
+  首个正式版本。提供元数据刮削、封面 / 背景 / 缩略图三类图片、番号匹配、演员信息与头像，
+  并支持代理、限速、超时与缓存配置。

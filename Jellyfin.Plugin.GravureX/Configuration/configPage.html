@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <title>GravureX</title>
+    <meta charset="utf-8" />
+</head>
+<body>
+    <!--
+        不要在这里设置 data-controller。Jellyfin 会把该属性当成要 import 的 ES
+        模块，指向一个 HTML 页面会让 import 失败，框架随即跳过 pageshow 事件，
+        表单就会一直是空的。
+    -->
+    <div id="GravureXConfigPage" data-role="page" class="page type-interior pluginConfigurationPage"
+         data-require="emby-input,emby-button,emby-select,emby-checkbox">
+        <div data-role="content">
+            <div class="content-primary">
+                <form id="GravureXConfigForm">
+                    <div class="verticalSection">
+                        <h2 class="sectionTitle">网络</h2>
+
+                        <div class="inputContainer">
+                            <input is="emby-input" type="text" id="proxyUrl" name="proxyUrl" label="HTTP 代理" />
+                            <div class="fieldDescription">
+                                可选。例如 http://127.0.0.1:7890。数据源并非在所有网络下都能直连，
+                                Jellyfin 服务器需要走代理时请在此填写。
+                            </div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <input is="emby-input" type="text" id="userAgent" name="userAgent" label="User-Agent 请求头" />
+                            <div class="fieldDescription">
+                                留空则使用内置的默认值。
+                            </div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <input is="emby-input" type="number" id="requestIntervalMs" name="requestIntervalMs" value="1500"
+                                   label="请求最小间隔（毫秒）" min="0" step="100" />
+                            <div class="fieldDescription">
+                                数值越大对数据源越友好，建议不低于 1500 毫秒。
+                            </div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <input is="emby-input" type="number" id="requestTimeoutSeconds" name="requestTimeoutSeconds" value="30"
+                                   label="请求超时（秒）" min="5" max="120" />
+                        </div>
+
+                        <div class="inputContainer">
+                            <input is="emby-input" type="number" id="cacheDurationMinutes" name="cacheDurationMinutes" value="1440"
+                                   label="页面缓存时长（分钟）" min="0" />
+                            <div class="fieldDescription">填 0 表示不使用缓存。</div>
+                        </div>
+                    </div>
+
+                    <div class="verticalSection">
+                        <h2 class="sectionTitle">匹配</h2>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="enableSearchEndpoint" name="enableSearchEndpoint" />
+                                <span>通过站内搜索解析番号</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">
+                                文件名里是 AB123-4567、ab1234567 这类番号时必须开启；
+                                文件名里写完整内容 ID 时不依赖它。
+                            </div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="preferStandardEdition" name="preferStandardEdition" />
+                                <span>优先选择通常版</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">
+                                同一作品存在限定版、特典版时，选择普通发售的那一版。
+                            </div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="prefixTitleWithContentNumber" name="prefixTitleWithContentNumber" />
+                                <span>标题前置番号</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">
+                                标题形如 AB123-4567 タイトル。番号取自文件名，
+                                连字符位置与你命名时保持一致。
+                            </div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="enableJanProviderId" name="enableJanProviderId" />
+                                <span>保存 JAN 条码为外部 ID</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="verticalSection">
+                        <h2 class="sectionTitle">元数据</h2>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="enableGenres" name="enableGenres" />
+                                <span>导入类型（Genre）</span>
+                            </label>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="enableTags" name="enableTags" />
+                                <span>把媒体类型与系列写入标签</span>
+                            </label>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="importDirector" name="importDirector" />
+                                <span>把导演加入演职人员</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">
+                                关闭时演职人员只保留演员。导演仍会从页面读取，只是不写入条目。
+                            </div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <input is="emby-input" type="number" id="maxPreviewImages" name="maxPreviewImages" value="50"
+                                   label="最多提供的预览图张数" min="0" max="100" />
+                            <div class="fieldDescription">
+                                提供的每一张都会出现在手动选图界面；实际保存几张由媒体库自身的图片数量
+                                上限决定。填 0 表示不限。
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="verticalSection">
+                        <h2 class="sectionTitle">演员</h2>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="enableActorImages" name="enableActorImages" />
+                                <span>查询演员头像</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">
+                                数据源只为少数演员提供头像，多数查询会找不到。
+                            </div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <input is="emby-input" type="number" id="actorIndexCacheDays" name="actorIndexCacheDays" value="7"
+                                   label="演员索引缓存（天）" min="0" max="30" />
+                            <div class="fieldDescription">
+                                重建一次索引约需 14 次请求。填 0 表示每次扫描都重建。
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <button is="emby-button" type="submit" class="raised button-submit block emby-button">
+                            <span>保存</span>
+                        </button>
+                        <button is="emby-button" type="button" id="restoreDefaults"
+                                class="raised button-cancel block emby-button">
+                            <span>恢复默认</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script type="text/javascript">
+            (function () {
+                var pluginId = '9bd97d01-52e6-4219-9294-25e80b7fb254';
+
+                function load(page) {
+                    return ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                        fill(page, config || {});
+                    });
+                }
+
+                // An empty field must fall back to the default rather than becoming a
+                // zero, which is how the configuration used to get wiped.
+                function num(page, id, fallback) {
+                    var parsed = parseInt(page.querySelector('#' + id).value, 10);
+                    return isNaN(parsed) ? fallback : parsed;
+                }
+
+                function save(page) {
+                    return ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                        config.ProxyUrl = page.querySelector('#proxyUrl').value;
+                        config.UserAgent = page.querySelector('#userAgent').value;
+                        config.RequestIntervalMs = num(page, 'requestIntervalMs', defaults.RequestIntervalMs);
+                        config.RequestTimeoutSeconds = num(page, 'requestTimeoutSeconds', defaults.RequestTimeoutSeconds);
+                        config.CacheDurationMinutes = num(page, 'cacheDurationMinutes', defaults.CacheDurationMinutes);
+                        config.EnableSearchEndpoint = page.querySelector('#enableSearchEndpoint').checked;
+                        config.PreferStandardEdition = page.querySelector('#preferStandardEdition').checked;
+                        config.EnableJanProviderId = page.querySelector('#enableJanProviderId').checked;
+                        config.PrefixTitleWithContentNumber = page.querySelector('#prefixTitleWithContentNumber').checked;
+                        config.EnableGenres = page.querySelector('#enableGenres').checked;
+                        config.EnableTags = page.querySelector('#enableTags').checked;
+                        config.ImportDirector = page.querySelector('#importDirector').checked;
+                        config.MaxPreviewImages = num(page, 'maxPreviewImages', defaults.MaxPreviewImages);
+                        config.EnableActorImages = page.querySelector('#enableActorImages').checked;
+                        config.ActorIndexCacheDays = num(page, 'actorIndexCacheDays', defaults.ActorIndexCacheDays);
+                        return ApiClient.updatePluginConfiguration(pluginId, config);
+                    });
+                }
+
+                // Falls back to the plugin's defaults, so a single click repairs a
+                // configuration that earlier versions could save as zeroes.
+                var defaults = {
+                    ProxyUrl: '',
+                    UserAgent: '',
+                    RequestIntervalMs: 1500,
+                    RequestTimeoutSeconds: 30,
+                    CacheDurationMinutes: 1440,
+                    EnableSearchEndpoint: true,
+                    PreferStandardEdition: true,
+                    EnableJanProviderId: true,
+                    PrefixTitleWithContentNumber: true,
+                    EnableGenres: true,
+                    EnableTags: true,
+                    ImportDirector: false,
+                    MaxPreviewImages: 50,
+                    EnableActorImages: true,
+                    ActorIndexCacheDays: 7
+                };
+
+                function fill(page, config) {
+                    function text(id, value) {
+                        page.querySelector('#' + id).value = value == null ? '' : value;
+                    }
+
+                    function number(id, value) {
+                        text(id, value == null ? defaults[fieldOf(id)] : value);
+                    }
+
+                    function toggle(id, value) {
+                        page.querySelector('#' + id).checked = value == null ? defaults[fieldOf(id)] : value;
+                    }
+
+                    function fieldOf(id) {
+                        return id.charAt(0).toUpperCase() + id.slice(1);
+                    }
+
+                    text('proxyUrl', config.ProxyUrl);
+                    text('userAgent', config.UserAgent);
+                    number('requestIntervalMs', config.RequestIntervalMs);
+                    number('requestTimeoutSeconds', config.RequestTimeoutSeconds);
+                    number('cacheDurationMinutes', config.CacheDurationMinutes);
+                    number('maxPreviewImages', config.MaxPreviewImages);
+                    number('actorIndexCacheDays', config.ActorIndexCacheDays);
+                    toggle('enableSearchEndpoint', config.EnableSearchEndpoint);
+                    toggle('preferStandardEdition', config.PreferStandardEdition);
+                    toggle('enableJanProviderId', config.EnableJanProviderId);
+                    toggle('prefixTitleWithContentNumber', config.PrefixTitleWithContentNumber);
+                    toggle('enableGenres', config.EnableGenres);
+                    toggle('enableTags', config.EnableTags);
+                    toggle('importDirector', config.ImportDirector);
+                    toggle('enableActorImages', config.EnableActorImages);
+                }
+
+                document.querySelector('#GravureXConfigPage').addEventListener('pageshow', function () {
+                    load(this);
+                });
+
+                document.querySelector('#restoreDefaults').addEventListener('click', function () {
+                    fill(document.querySelector('#GravureXConfigPage'), defaults);
+                    if (window.Dashboard && Dashboard.alert) {
+                        Dashboard.alert('已恢复默认值，请点击「保存」使其生效。');
+                    }
+                });
+
+                document.querySelector('#GravureXConfigForm').addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    save(document.querySelector('#GravureXConfigPage')).then(function () {
+                        Dashboard.processPluginConfigurationUpdateResult();
+                    });
+                    return false;
+                });
+            })();
+        </script>
+    </div>
+</body>
+</html>

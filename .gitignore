@@ -1,0 +1,22 @@
+## Build output
+bin/
+obj/
+artifacts/
+*.user
+*.suo
+
+## Local scratch space (sample pages, ad-hoc test harness)
+.scratch/
+
+## Local agent workspace
+.workbuddy/
+
+## IDE
+.vs/
+.vscode/
+.idea/
+*.DotSettings.user
+
+## OS
+.DS_Store
+Thumbs.db
