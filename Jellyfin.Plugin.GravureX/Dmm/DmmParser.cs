@@ -48,7 +48,9 @@ public static partial class DmmParser
             {
                 ContentId = contentId,
                 Title = HtmlEntity.DeEntitize(titleNode?.InnerText ?? anchor.GetAttributeValue("title", string.Empty)).Trim(),
-                ImageUrl = NormalizeImageUrl(imageNode?.GetAttributeValue("src", null) ?? imageNode?.GetAttributeValue("data-lazy", null))
+                ImageUrl = ToLargePackageImage(NormalizeImageUrl(
+                    imageNode?.GetAttributeValue("src", null) ?? imageNode?.GetAttributeValue("data-lazy", null))),
+                ReleaseDate = ParseDate(ParseListingDate(anchor.SelectSingleNode("ancestor::li[1]") ?? anchor.ParentNode))
             };
 
             results.Add(item);
@@ -89,7 +91,6 @@ public static partial class DmmParser
 
         ApplyInfoTable(root, title);
         ApplyGallery(html, root, title);
-        ApplyMedia(root, title);
 
         if (string.IsNullOrEmpty(title.ContentId))
         {
@@ -316,17 +317,6 @@ public static partial class DmmParser
                     }
                 }
 
-                if (rating.TryGetProperty("reviewCount", out var count))
-                {
-                    if (count.ValueKind == JsonValueKind.String && int.TryParse(count.GetString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var countString))
-                    {
-                        title.ReviewCount = countString;
-                    }
-                    else if (count.ValueKind == JsonValueKind.Number && count.TryGetInt32(out var countNumber))
-                    {
-                        title.ReviewCount = countNumber;
-                    }
-                }
             }
         }
     }
@@ -368,6 +358,12 @@ public static partial class DmmParser
                     title.Director = NormalizePlaceholder(HtmlEntity.DeEntitize(cell.InnerText).Trim());
                     break;
 
+                case "メディア":
+                    // Published on some pages only, so the media type tag is best
+                    // effort. The value is like "DVD" or "Blu-ray".
+                    title.Media = NormalizePlaceholder(HtmlEntity.DeEntitize(cell.InnerText).Trim().Split(' ', '\t', '\n', '\r')[0]);
+                    break;
+
                 case "シリーズ":
                     title.Series = NormalizePlaceholder(HtmlEntity.DeEntitize(cell.InnerText).Trim());
                     break;
@@ -390,10 +386,12 @@ public static partial class DmmParser
                     break;
 
                 case "品番":
-                    var productCode = HtmlEntity.DeEntitize(cell.InnerText).Trim();
-                    if (!string.IsNullOrEmpty(productCode))
+                    // A fallback only. The printed product code is not guaranteed to
+                    // be the content id the page was fetched with, and that id is
+                    // what the JSON-LD block reports.
+                    if (string.IsNullOrEmpty(title.ContentId))
                     {
-                        title.ContentId = productCode;
+                        title.ContentId = HtmlEntity.DeEntitize(cell.InnerText).Trim();
                     }
 
                     break;
@@ -429,10 +427,7 @@ public static partial class DmmParser
                 }
 
                 // The gallery exposes the small package image; upgrade it to the large one.
-                if (url.EndsWith("ps.jpg", StringComparison.OrdinalIgnoreCase))
-                {
-                    url = string.Concat(url.AsSpan(0, url.Length - "ps.jpg".Length), "pl.jpg");
-                }
+                url = ToLargePackageImage(url)!;
 
                 if (primaryName is not null && Path.GetFileName(new Uri(url).LocalPath)
                         .Equals(primaryName, StringComparison.OrdinalIgnoreCase))
@@ -478,43 +473,6 @@ public static partial class DmmParser
         return match.Success && int.TryParse(match.Groups["n"].Value, out var number) ? number : int.MaxValue;
     }
 
-    private static void ApplyMedia(HtmlNode root, DmmTitle title)
-    {
-        var definitions = root.SelectNodes("//dl[contains(@class,'area-otherItems__list')]//dt");
-        if (definitions is null)
-        {
-            return;
-        }
-
-        foreach (var definition in definitions)
-        {
-            if (!string.Equals(HtmlEntity.DeEntitize(definition.InnerText).Trim(), "メディア", StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            var firstItem = definition.SelectSingleNode("following-sibling::dd[1]//li");
-            if (firstItem is null)
-            {
-                return;
-            }
-
-            var text = HtmlEntity.DeEntitize(firstItem.InnerText).Trim();
-            if (text.Length == 0)
-            {
-                return;
-            }
-
-            var media = text.Split(' ', '\t', '\n', '\r')[0];
-            if (media.Length > 0)
-            {
-                title.Media = media;
-            }
-
-            return;
-        }
-    }
-
     private static IReadOnlyList<DmmPerson> ParseActors(HtmlNode cell)
     {
         var actors = new List<DmmPerson>();
@@ -555,7 +513,9 @@ public static partial class DmmParser
             return title;
         }
 
-        var separator = title.LastIndexOf('/');
+        // Titles separate the performer with either a half width or a full width
+        // solidus, and both appear in the wild.
+        var separator = title.LastIndexOfAny(new[] { '/', '\uFF0F' });
         if (separator <= 0)
         {
             return title;
@@ -592,6 +552,29 @@ public static partial class DmmParser
     {
         var trimmed = value.Replace("&nbsp;", " ", StringComparison.Ordinal).Trim();
         return trimmed.Length == 0 || trimmed.StartsWith("----", StringComparison.Ordinal) ? null : trimmed;
+    }
+
+    /// <summary>
+    /// Upgrades a package thumbnail to the package spread published under the same
+    /// name: the listing and the gallery only ever expose the small one.
+    /// </summary>
+    private static string? ToLargePackageImage(string? url) =>
+        url is not null && url.EndsWith("ps.jpg", StringComparison.OrdinalIgnoreCase)
+            ? string.Concat(url.AsSpan(0, url.Length - "ps.jpg".Length), "pl.jpg")
+            : url;
+
+    /// <summary>
+    /// Reads the release date a listing entry prints as <c>発売日：yyyy/MM/dd</c>.
+    /// </summary>
+    private static string? ParseListingDate(HtmlNode? container)
+    {
+        if (container is null)
+        {
+            return null;
+        }
+
+        var match = ListingDateRegex().Match(HtmlEntity.DeEntitize(container.InnerText));
+        return match.Success ? match.Groups["date"].Value : null;
     }
 
     private static string? NormalizeImageUrl(string? url)
@@ -640,6 +623,10 @@ public static partial class DmmParser
     // Preview images always live under /digital/video/{id}/ and end in "-{n}.jpg".
     [GeneratedRegex(@"(?<url>(?:https?:)?//pics\.dmm\.com/digital/video/[^/'""\s]+/(?<base>[^/'""\s-]+)-(?<n>\d+)\.jpg)", RegexOptions.IgnoreCase)]
     private static partial Regex PreviewRegex();
+
+    // A listing entry prints its release date as 発売日：yyyy/MM/dd.
+    [GeneratedRegex(@"発売日[：:]\s*(?<date>\d{4}/\d{1,2}/\d{1,2})", RegexOptions.None)]
+    private static partial Regex ListingDateRegex();
 
     [GeneratedRegex(@"cid=(?<cid>[A-Za-z0-9_\-]+)", RegexOptions.IgnoreCase)]
     private static partial Regex ContentIdRegex();

@@ -27,7 +27,6 @@ all three and fills each field from the most reliable one.
 | `brand.name` | Maker |
 | `image[0]` | Large package image |
 | `aggregateRating.ratingValue` | Present once reviews exist |
-| `aggregateRating.reviewCount` | Number of reviews |
 
 ### 2. Information table
 
@@ -42,7 +41,8 @@ Rows are `<td class="nw">LABEL：</td><td>VALUE</td>` pairs.
 | シリーズ | Frequently empty |
 | メーカー | Maker |
 | ジャンル | One or more keyword links |
-| 品番 | Content id |
+| メディア | `DVD` or `Blu-ray`. Only some pages publish it, so it is read on a best effort basis |
+| 品番 | Content id. Used only when the JSON-LD block did not carry one |
 
 Empty fields are rendered as `----` and are skipped.
 
@@ -52,7 +52,7 @@ Empty fields are rendered as `----` and are skipped.
 |---|---|---|
 | Package spread | `<meta property="og:image">`, `.../{cid}pl.jpg` | 800×536 |
 | Package thumbnail | `.../{cid}ps.jpg` | 147×200 |
-| Preview thumbnail | `data-lazy` of `.layout-sampleImage__item` | 120×90 |
+| Preview thumbnail | `data-lazy` of `.layout-sampleImage__item`, plus a text scan of the response | 120×90 |
 | Preview full size | the same URL with `jp-` before the number | 800×450 |
 
 `pl.jpg` is not the front cover. It is the whole package laid flat: back cover on the
@@ -61,6 +61,10 @@ front cover starts at about 53% of the width — cropping at exactly half leaves
 of spine along the left edge. No larger front-cover-only image exists, so the poster is
 produced by cropping `pl.jpg` at download time, which is why the plugin carries an
 image library.
+
+Preview URLs are collected twice over. The container markup has not been stable between
+titles and one title yielded none from it at all, so the response text is also scanned for
+`/digital/video/{id}/{id}-{n}.jpg`. Both lists are merged and ordered by image number.
 
 Preview URLs point at 120×90 thumbnails. The full size twin is obtained by inserting
 `jp-` before the trailing number, so `{id}-3.jpg` becomes `{id}jp-3.jpg`. The full size
@@ -75,6 +79,22 @@ and the plugin does not report dimensions for them (see the note in `ImageProvid
 Gallery images live under `https://pics.dmm.com/digital/video/{digitalCid}/`. The
 digital content id cannot be derived from the mono content id, so those URLs are always
 taken from the page. Pre-order titles generally have no gallery yet.
+
+## Search results page
+
+Each entry is a `<li>` holding the detail link, the title in `span.txt`, the package
+thumbnail, and the release date printed as `発売日：yyyy/MM/dd`:
+
+```html
+<li>
+  <a href=".../detail/=/cid={contentId}/"><span class="img"><img src=".../{cid}ps.jpg"></span>
+    <span class="txt">TITLE</span></a>
+  <p class="rate">発売日：2026/09/30</p>
+</li>
+```
+
+The listing only publishes the 147×200 package thumbnail, so the plugin swaps the trailing
+`ps.jpg` for `pl.jpg` to get the 800×536 spread for the search result image.
 
 ## Content numbers
 
@@ -129,7 +149,7 @@ of which roughly 40 had a real portrait.
 | RunTimeTicks | 収録時間 |
 | Studios | メーカー |
 | Genres | ジャンル |
-| Tags | Media type, シリーズ |
+| Tags | シリーズ, and メディア when the page publishes it |
 | CommunityRating | `aggregateRating` |
 | People | 出演者, 監督 |
 | ProviderIds | `GravureX` (content id), `GravureXJan` (barcode) |

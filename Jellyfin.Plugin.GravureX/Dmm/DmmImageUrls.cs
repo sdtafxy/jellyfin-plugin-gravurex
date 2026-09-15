@@ -18,7 +18,7 @@ namespace Jellyfin.Plugin.GravureX.Dmm;
 public static partial class DmmImageUrls
 {
     /// <summary>Query string marking a URL that should be cropped to the front cover.</summary>
-    public const string CoverMarker = "gravuredex=cover";
+    public const string CoverMarker = "gravurex=cover";
 
     /// <summary>Marker appended to a package URL to request the cropped front cover.</summary>
     public static string AsCover(string packageUrl) =>

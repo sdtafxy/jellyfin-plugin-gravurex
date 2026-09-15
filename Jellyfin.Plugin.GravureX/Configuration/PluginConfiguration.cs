@@ -3,7 +3,7 @@ using MediaBrowser.Model.Plugins;
 namespace Jellyfin.Plugin.GravureX.Configuration;
 
 /// <summary>
-/// User configurable settings for the DMM Gravure metadata provider.
+/// User configurable settings for the GravureX metadata provider.
 /// </summary>
 public class PluginConfiguration : BasePluginConfiguration
 {
@@ -64,7 +64,8 @@ public class PluginConfiguration : BasePluginConfiguration
     public bool ImportDirector { get; set; }
 
     /// <summary>
-    /// Add the media type (DVD / Blu-ray) and the maker as tags.
+    /// Add the series name as a tag, along with the media type when the page
+    /// publishes one.
     /// </summary>
     public bool EnableTags { get; set; } = true;
 
@@ -77,6 +78,9 @@ public class PluginConfiguration : BasePluginConfiguration
 
     /// <summary>Preview images offered when no limit is set.</summary>
     public const int UnlimitedPreviewImages = 200;
+
+    /// <summary>Cache duration used when the configured one is missing.</summary>
+    public const int DefaultCacheDurationMinutes = 1440;
 
     /// <summary>Shortest delay allowed between two requests.</summary>
     public const int MinRequestIntervalMs = 250;

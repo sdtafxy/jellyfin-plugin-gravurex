@@ -11,7 +11,7 @@ namespace Jellyfin.Plugin.GravureX.Providers;
 /// </summary>
 public class GravureXExternalId : IExternalId
 {
-    public string ProviderName => Plugin.ProviderName;
+    public string ProviderName => Plugin.DisplayName;
 
     public string Key => Plugin.ProviderKey;
 
@@ -27,7 +27,7 @@ public class GravureXExternalId : IExternalId
 /// </summary>
 public class GravureXJanExternalId : IExternalId
 {
-    public string ProviderName => "GravureX JAN";
+    public string ProviderName => Plugin.JanDisplayName;
 
     public string Key => Plugin.JanProviderKey;
 
@@ -43,7 +43,7 @@ public class GravureXJanExternalId : IExternalId
 /// </summary>
 public class GravureXActorExternalId : IExternalId
 {
-    public string ProviderName => "GravureX Actor";
+    public string ProviderName => Plugin.ActorDisplayName;
 
     public string Key => Plugin.ActorProviderKey;
 

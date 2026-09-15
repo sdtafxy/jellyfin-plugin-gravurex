@@ -19,6 +19,15 @@ public sealed class DmmIdolIndex
         "ka", "sa", "ta", "na", "ha", "ma", "ya", "ra", "wa"
     };
 
+    /// <summary>
+    /// How long to wait before trying a failed build again. Long enough not to
+    /// hammer the source, short enough that a transient failure clears itself.
+    /// </summary>
+    private static readonly TimeSpan RetryAfterFailure = TimeSpan.FromMinutes(5);
+
+    /// <summary>Handed out while a failed build is cooling down.</summary>
+    private static readonly Dictionary<string, DmmActor> EmptyIndex = new(StringComparer.Ordinal);
+
     private readonly DmmClient _client;
     private readonly ILogger<DmmIdolIndex> _logger;
     private readonly SemaphoreSlim _gate = new(1, 1);
@@ -26,6 +35,7 @@ public sealed class DmmIdolIndex
     private Dictionary<string, DmmActor>? _byId;
     private Dictionary<string, DmmActor>? _byName;
     private DateTime _builtAt;
+    private DateTime? _failedAt;
 
     public DmmIdolIndex(DmmClient client, ILogger<DmmIdolIndex> logger)
     {
@@ -66,17 +76,24 @@ public sealed class DmmIdolIndex
 
     private async Task<Dictionary<string, DmmActor>> GetIndexAsync(CancellationToken cancellationToken)
     {
-        if (_byId is not null && DateTime.UtcNow - _builtAt < CacheWindow())
+        if (IsFresh())
         {
-            return _byId;
+            return _byId!;
+        }
+
+        // A build that came back empty must not be cached for the whole window, and
+        // must not be retried for every single item either.
+        if (_failedAt is { } failedAt && DateTime.UtcNow - failedAt < RetryAfterFailure)
+        {
+            return EmptyIndex;
         }
 
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (_byId is not null && DateTime.UtcNow - _builtAt < CacheWindow())
+            if (IsFresh())
             {
-                return _byId;
+                return _byId!;
             }
 
             var byId = new Dictionary<string, DmmActor>(StringComparer.Ordinal);
@@ -109,22 +126,34 @@ public sealed class DmmIdolIndex
                 }
             }
 
+            if (byId.Count == 0)
+            {
+                _failedAt = DateTime.UtcNow;
+                _logger.LogWarning(
+                    "GravureX: idol index came back empty, retrying in {Minutes} minutes",
+                    RetryAfterFailure.TotalMinutes);
+                return EmptyIndex;
+            }
+
             _byId = byId;
             _byName = byName;
             _builtAt = DateTime.UtcNow;
+            _failedAt = null;
 
             _logger.LogInformation(
                 "GravureX: idol index built with {Count} performers, {WithImage} with a portrait",
                 byId.Count,
                 byId.Values.Count(a => a.ImageUrl is not null));
+
+            return _byId;
         }
         finally
         {
             _gate.Release();
         }
-
-        return _byId;
     }
+
+    private bool IsFresh() => _byId is not null && DateTime.UtcNow - _builtAt < CacheWindow();
 
     private static bool IsEnabled() => Plugin.Instance?.Configuration.EnableActorImages ?? true;
 

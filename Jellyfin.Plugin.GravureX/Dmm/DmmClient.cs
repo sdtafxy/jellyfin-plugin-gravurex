@@ -12,6 +12,12 @@ public sealed class DmmClient : IDisposable
 {
     private const string BaseUrl = "https://www.dmm.com";
 
+    /// <summary>
+    /// Upper bound on cached pages. A long running server would otherwise keep
+    /// every page it ever fetched.
+    /// </summary>
+    private const int MaxCachedPages = 256;
+
     private readonly ILogger<DmmClient> _logger;
     private readonly Func<Configuration.PluginConfiguration?> _configurationProvider;
     private readonly SemaphoreSlim _gate = new(1, 1);
@@ -114,7 +120,7 @@ public sealed class DmmClient : IDisposable
     public async Task<string?> GetHtmlAsync(string url, CancellationToken cancellationToken)
     {
         var configuration = _configurationProvider();
-        var cacheMinutes = configuration?.CacheDurationMinutes ?? 60;
+        var cacheMinutes = configuration?.CacheDurationMinutes ?? PluginConfiguration.DefaultCacheDurationMinutes;
 
         if (cacheMinutes > 0 && _cache.TryGetValue(url, out var cached))
         {
@@ -133,6 +139,11 @@ public sealed class DmmClient : IDisposable
 
         if (html is not null && cacheMinutes > 0)
         {
+            if (_cache.Count >= MaxCachedPages)
+            {
+                EvictOldest();
+            }
+
             _cache[url] = new CacheEntry(html, DateTime.UtcNow);
         }
 
@@ -182,13 +193,31 @@ public sealed class DmmClient : IDisposable
     /// </summary>
     public void ClearCache() => _cache.Clear();
 
+    /// <summary>
+    /// Drops the oldest quarter of the cache once it is full, so it stays bounded
+    /// without a separate expiry sweep.
+    /// </summary>
+    private void EvictOldest()
+    {
+        var stale = _cache
+            .OrderBy(pair => pair.Value.CreatedAt)
+            .Take((_cache.Count / 4) + 1)
+            .Select(pair => pair.Key)
+            .ToList();
+
+        foreach (var key in stale)
+        {
+            _cache.TryRemove(key, out _);
+        }
+    }
+
     private async Task<string?> FetchWithRateLimitAsync(HttpClient client, string url, int intervalMs, CancellationToken cancellationToken)
     {
         await ThrottleAsync(intervalMs, cancellationToken).ConfigureAwait(false);
 
         try
         {
-            var response = await client.GetAsync(url, cancellationToken).ConfigureAwait(false);
+            using var response = await client.GetAsync(url, cancellationToken).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("GravureX: {StatusCode} for {Url}", response.StatusCode, url);
@@ -268,6 +297,10 @@ public sealed class DmmClient : IDisposable
         _httpClient = client;
         _configuredProxy = proxy;
         _configuredUserAgent = userAgent;
+
+        // A new client means the proxy or the user agent changed, and pages fetched
+        // through the old one should not be handed out any more.
+        _cache.Clear();
 
         return client;
     }

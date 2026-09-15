@@ -49,8 +49,6 @@ public sealed class DmmTitle
 
     public float? CommunityRating { get; set; }
 
-    public int? ReviewCount { get; set; }
-
     /// <summary>Media type as shown on the page, e.g. <c>DVD</c> or <c>Blu-ray</c>.</summary>
     public string? Media { get; set; }
 
@@ -76,13 +74,6 @@ public sealed class DmmPerson
 
     /// <summary>DMM actor id, usable to build the actor listing URL.</summary>
     public string? ActorId { get; set; }
-
-    public string? ImageUrl { get; set; }
-
-    public string? ListingUrl =>
-        string.IsNullOrEmpty(ActorId)
-            ? null
-            : $"https://www.dmm.com/mono/dvd/-/list/=/article=actor/id={ActorId}/";
 }
 
 /// <summary>

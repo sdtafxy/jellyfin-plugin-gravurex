@@ -29,7 +29,7 @@ public class PersonProvider : IRemoteMetadataProvider<Person, PersonLookupInfo>,
         _logger = logger;
     }
 
-    public string Name => Plugin.ProviderName;
+    public string Name => Plugin.DisplayName;
 
     public int Order => 1;
 
@@ -74,11 +74,6 @@ public class PersonProvider : IRemoteMetadataProvider<Person, PersonLookupInfo>,
             return result;
         }
 
-        // The listing page is the authoritative source for the name and reading;
-        // the index adds the portrait when one exists.
-        var indexed = await _idolIndex.FindAsync(actor.Id.Length > 0 ? actor.Id : null, actor.Name, cancellationToken)
-            .ConfigureAwait(false);
-
         var person = result.Item;
         person.Name = actor.Name;
         person.HomePageUrl = actor.ListingUrl;
@@ -93,38 +88,35 @@ public class PersonProvider : IRemoteMetadataProvider<Person, PersonLookupInfo>,
             person.Overview = $"读音：{actor.Reading}";
         }
 
-        if (indexed?.ImageUrl is { Length: > 0 } portrait)
-        {
-            person.ImageInfos =
-            [
-                new ItemImageInfo
-                {
-                    Path = portrait,
-                    Type = ImageType.Primary
-                }
-            ];
-        }
-
         result.HasMetadata = true;
         result.QueriedById = actor.Id.Length > 0;
         return result;
     }
 
+    /// <summary>
+    /// Answers Jellyfin when it asks this provider for an image. Portraits are
+    /// served by <see cref="ImageProvider"/>; a 404 keeps the request from failing
+    /// loudly if the image pipeline happens to route it here.
+    /// </summary>
     public Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken cancellationToken)
-        => throw new NotImplementedException();
+        => Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.NotFound));
 
-    private static RemoteSearchResult ToSearchResult(DmmActor actor) => new()
+    private static RemoteSearchResult ToSearchResult(DmmActor actor)
     {
-        Name = actor.Name,
-        SearchProviderName = Plugin.ProviderName,
-        ImageUrl = actor.ImageUrl,
-        ProviderIds = actor.Id.Length == 0
-            ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-            : new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-            {
-                [Plugin.ActorProviderKey] = actor.Id
-            }
-    };
+        var ids = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (actor.Id.Length > 0)
+        {
+            ids[Plugin.ActorProviderKey] = actor.Id;
+        }
+
+        return new RemoteSearchResult
+        {
+            Name = actor.Name,
+            SearchProviderName = Plugin.DisplayName,
+            ImageUrl = actor.ImageUrl,
+            ProviderIds = ids
+        };
+    }
 
     private static string? GetActorId(PersonLookupInfo info)
     {

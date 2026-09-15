@@ -27,23 +27,23 @@ public class ImageProvider : IRemoteImageProvider, IHasOrder
     private const float FrontCoverStart = 0.53f;
 
     private readonly DmmClient _client;
-    private readonly ContentNumberResolver _resolver;
+    private readonly ItemContentIdResolver _contentIds;
     private readonly DmmIdolIndex _idolIndex;
     private readonly ILogger<ImageProvider> _logger;
 
     public ImageProvider(
         DmmClient client,
-        ContentNumberResolver resolver,
+        ItemContentIdResolver contentIds,
         DmmIdolIndex idolIndex,
         ILogger<ImageProvider> logger)
     {
         _client = client;
-        _resolver = resolver;
+        _contentIds = contentIds;
         _idolIndex = idolIndex;
         _logger = logger;
     }
 
-    public string Name => Plugin.ProviderName;
+    public string Name => Plugin.DisplayName;
 
     public int Order => 1;
 
@@ -61,7 +61,13 @@ public class ImageProvider : IRemoteImageProvider, IHasOrder
             return await GetPersonImagesAsync(person, cancellationToken).ConfigureAwait(false);
         }
 
-        var contentId = await ResolveContentIdAsync(item, cancellationToken).ConfigureAwait(false);
+        var contentId = (await _contentIds
+            .ResolveAsync(
+                item.ProviderIds,
+                ItemContentIdResolver.NamesFrom(item.Name, item.Path),
+                cancellationToken)
+            .ConfigureAwait(false)).ContentId;
+
         if (string.IsNullOrEmpty(contentId))
         {
             return Enumerable.Empty<RemoteImageInfo>();
@@ -244,7 +250,7 @@ public class ImageProvider : IRemoteImageProvider, IHasOrder
     /// </remarks>
     private static RemoteImageInfo Remote(string url, ImageType type) => new()
     {
-        ProviderName = Plugin.ProviderName,
+        ProviderName = Plugin.DisplayName,
         Url = url,
         Type = type
     };
@@ -281,41 +287,5 @@ public class ImageProvider : IRemoteImageProvider, IHasOrder
             _logger.LogWarning(ex, "GravureX: could not crop the package image, serving it unchanged");
             return source;
         }
-    }
-
-    private async Task<string?> ResolveContentIdAsync(BaseItem item, CancellationToken cancellationToken)
-    {
-        if (item.ProviderIds is not null)
-        {
-            foreach (var key in Plugin.ContentIdKeys)
-            {
-                if (item.ProviderIds.TryGetValue(key, out var stored) && !string.IsNullOrWhiteSpace(stored))
-                {
-                    return stored.Trim();
-                }
-            }
-        }
-
-        foreach (var source in new[] { item.Name, item.FileNameWithoutExtension, Path.GetFileName(Path.GetDirectoryName(item.Path ?? string.Empty)) })
-        {
-            var extracted = ContentNumberResolver.Extract(source);
-            if (string.IsNullOrEmpty(extracted))
-            {
-                continue;
-            }
-
-            if (ContentNumberResolver.IsFullContentId(extracted))
-            {
-                return extracted;
-            }
-
-            var resolved = await _resolver.ResolveAsync(extracted, cancellationToken).ConfigureAwait(false);
-            if (!string.IsNullOrEmpty(resolved))
-            {
-                return resolved;
-            }
-        }
-
-        return null;
     }
 }

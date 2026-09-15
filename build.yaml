@@ -1,7 +1,7 @@
 ---
 name: "GravureX"
 guid: "9BD97D01-52E6-4219-9294-25E80B7FB254"
-version: "0.1.0.0"
+version: "0.1.1.0"
 targetAbi: "10.11.0.0"
 framework: "net9.0"
 owner: "sdtafxy"
@@ -16,5 +16,5 @@ artifacts:
   - "HtmlAgilityPack.dll"
   - "SixLabors.ImageSharp.dll"
 changelog: >
-  首个正式版本。提供元数据刮削、封面 / 背景 / 缩略图三类图片、番号匹配、演员信息与头像，
-  并支持代理、限速、超时与缓存配置。
+  修正图片 URL 标记里残留的旧插件名；搜索结果补上发售日期并改用套图大图；演员索引不再把
+  一次失败的抓取缓存满整个周期；README 拆分为中英两份，其余为一批遗留问题的清理。

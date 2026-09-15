@@ -15,23 +15,24 @@ namespace Jellyfin.Plugin.GravureX.Providers;
 public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrder
 {
     private readonly DmmClient _client;
-    private readonly ContentNumberResolver _resolver;
+    private readonly ItemContentIdResolver _contentIds;
     private readonly ILogger<MovieProvider> _logger;
 
-    public MovieProvider(DmmClient client, ContentNumberResolver resolver, ILogger<MovieProvider> logger)
+    public MovieProvider(DmmClient client, ItemContentIdResolver contentIds, ILogger<MovieProvider> logger)
     {
         _client = client;
-        _resolver = resolver;
+        _contentIds = contentIds;
         _logger = logger;
     }
 
-    public string Name => Plugin.ProviderName;
+    public string Name => Plugin.DisplayName;
 
     public int Order => 1;
 
     public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(MovieInfo searchInfo, CancellationToken cancellationToken)
     {
-        var (contentId, _) = await ResolveContentIdAsync(searchInfo, cancellationToken).ConfigureAwait(false);
+        var lookup = await ResolveAsync(searchInfo, cancellationToken).ConfigureAwait(false);
+        var contentId = lookup.ContentId;
         if (!string.IsNullOrEmpty(contentId))
         {
             var title = await _client.GetTitleAsync(contentId, cancellationToken).ConfigureAwait(false);
@@ -65,7 +66,10 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
     {
         var result = new MetadataResult<Movie> { Item = new Movie(), ResultLanguage = "ja" };
 
-        var (contentId, contentNumber) = await ResolveContentIdAsync(info, cancellationToken).ConfigureAwait(false);
+        var lookup = await ResolveAsync(info, cancellationToken).ConfigureAwait(false);
+        var contentId = lookup.ContentId;
+        var contentNumber = lookup.ContentNumber;
+
         if (string.IsNullOrEmpty(contentId))
         {
             _logger.LogInformation("GravureX: no content id resolvable for '{Name}'", info.Name);
@@ -164,13 +168,18 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
         return result;
     }
 
+    /// <summary>
+    /// Answers Jellyfin when it asks this provider for an image. Artwork is served
+    /// by <see cref="ImageProvider"/>; a 404 keeps the request from failing loudly
+    /// if the image pipeline happens to route it here.
+    /// </summary>
     public Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken cancellationToken)
-        => throw new NotImplementedException();
+        => Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.NotFound));
 
     private static RemoteSearchResult ToSearchResult(DmmTitle title) => new()
     {
         Name = string.IsNullOrEmpty(title.CleanTitle) ? title.Title : title.CleanTitle,
-        SearchProviderName = Plugin.ProviderName,
+        SearchProviderName = Plugin.DisplayName,
         Overview = title.Overview,
         ImageUrl = title.PackageImageUrl,
         PremiereDate = title.ReleaseDate,
@@ -182,70 +191,11 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
     };
 
     /// <summary>
-    /// Resolves the DMM content id, and reports the content number the file name
-    /// used so it can be put in front of the title.
+    /// Resolves the content id for an item, and with it the content number the
+    /// item's names carried.
     /// </summary>
-    private async Task<(string? ContentId, string? ContentNumber)> ResolveContentIdAsync(MovieInfo info, CancellationToken cancellationToken)
-    {
-        // The number that goes in front of the title always comes from the file name,
-        // never from the stored provider id, so it is read first. A stored id only
-        // saves the search; returning early on it used to drop the number and strip
-        // the prefix off a title that already had it.
-        var candidate = ReadCandidate(info);
-
-        if (info.ProviderIds is not null)
-        {
-            foreach (var key in Plugin.ContentIdKeys)
-            {
-                if (info.ProviderIds.TryGetValue(key, out var stored) && !string.IsNullOrWhiteSpace(stored))
-                {
-                    _logger.LogDebug(
-                        "GravureX: using stored provider id {Id}, file name number {Number}",
-                        stored,
-                        candidate?.Number ?? "(none)");
-                    return (stored.Trim(), candidate?.Number);
-                }
-            }
-        }
-
-        if (candidate is null)
-        {
-            return (null, null);
-        }
-
-        var (token, number, isFullContentId) = candidate.Value;
-
-        if (isFullContentId)
-        {
-            return (token, null);
-        }
-
-        var resolved = await _resolver.ResolveAsync(token, cancellationToken).ConfigureAwait(false);
-        return string.IsNullOrEmpty(resolved) ? (null, null) : (resolved, number);
-    }
-
-    /// <summary>
-    /// Reads the first usable content number or content id out of the item's names.
-    /// </summary>
-    private static (string Token, string? Number, bool IsFullContentId)? ReadCandidate(MovieInfo info)
-    {
-        foreach (var source in CandidateNames(info))
-        {
-            var extracted = ContentNumberResolver.Extract(source);
-            if (string.IsNullOrEmpty(extracted))
-            {
-                continue;
-            }
-
-            var isFullContentId = ContentNumberResolver.IsFullContentId(extracted);
-
-            // A full content id is not the number the file was named with, so it is
-            // not used as a prefix.
-            return (extracted, isFullContentId ? null : extracted, isFullContentId);
-        }
-
-        return null;
-    }
+    private Task<ContentIdLookup> ResolveAsync(MovieInfo info, CancellationToken cancellationToken) =>
+        _contentIds.ResolveAsync(info.ProviderIds, ItemContentIdResolver.NamesFrom(info.Name, info.Path), cancellationToken);
 
     /// <summary>
     /// Puts the content number in front of the title, unless the title already
@@ -265,23 +215,5 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
         }
 
         return $"{number} {title}";
-    }
-
-    private static IEnumerable<string?> CandidateNames(MovieInfo info)
-    {
-        yield return info.Name;
-
-        if (string.IsNullOrEmpty(info.Path))
-        {
-            yield break;
-        }
-
-        yield return Path.GetFileNameWithoutExtension(info.Path);
-
-        var directory = Path.GetDirectoryName(info.Path);
-        if (!string.IsNullOrEmpty(directory))
-        {
-            yield return Path.GetFileName(directory);
-        }
     }
 }
