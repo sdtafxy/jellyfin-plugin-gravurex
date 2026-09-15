@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/sdtafxy/jellyfin-plugin-gravurex/main/assets/logo.png",
     "versions": [
       {
+        "version": "0.1.1.0",
+        "changelog": "修正图片 URL 标记里残留的旧插件名；搜索结果补上发售日期并改用套图大图；演员索引不再把 一次失败的抓取缓存满整个周期；README 拆分为中英两份，其余为一批遗留问题的清理。",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/sdtafxy/jellyfin-plugin-gravurex/releases/download/v0.1.1/jellyfin-plugin-gravurex.zip",
+        "checksum": "f5e040ac6ded8c693cacbf46e6cbb28e",
+        "timestamp": "2026-09-15T13:32:15Z"
+      },
+      {
         "version": "0.1.0.0",
         "changelog": "首个正式版本。提供元数据刮削、封面 / 背景 / 缩略图三类图片、番号匹配、演员信息与头像， 并支持代理、限速、超时与缓存配置。",
         "targetAbi": "10.11.0.0",
