@@ -1,7 +1,7 @@
 ---
 name: "GravureX"
 guid: "9BD97D01-52E6-4219-9294-25E80B7FB254"
-version: "0.1.1.0"
+version: "0.1.2.0"
 targetAbi: "10.11.0.0"
 framework: "net9.0"
 owner: "sdtafxy"
@@ -16,5 +16,5 @@ artifacts:
   - "HtmlAgilityPack.dll"
   - "SixLabors.ImageSharp.dll"
 changelog: >
-  修正图片 URL 标记里残留的旧插件名；搜索结果补上发售日期并改用套图大图；演员索引不再把
-  一次失败的抓取缓存满整个周期；README 拆分为中英两份，其余为一批遗留问题的清理。
+  完整识别同一番号的多个版本：修正带后缀的限定版以前匹配不上的问题，自动刮削固定取通常版，
+  手动搜索在关闭「优先选择通常版」时列出全部版本供挑选。README 特色栏目改用 emoji 列表。

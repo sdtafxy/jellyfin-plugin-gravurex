@@ -19,7 +19,7 @@ public sealed class DmmClient : IDisposable
     private const int MaxCachedPages = 256;
 
     private readonly ILogger<DmmClient> _logger;
-    private readonly Func<Configuration.PluginConfiguration?> _configurationProvider;
+    private readonly ConfigurationAccessor _configuration;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly ConcurrentDictionary<string, CacheEntry> _cache = new(StringComparer.Ordinal);
 
@@ -30,14 +30,14 @@ public sealed class DmmClient : IDisposable
     private bool _disposed;
 
     public DmmClient(ILogger<DmmClient> logger)
-        : this(logger, null)
+        : this(logger, new ConfigurationAccessor())
     {
     }
 
-    public DmmClient(ILogger<DmmClient> logger, Func<Configuration.PluginConfiguration?>? configurationProvider)
+    public DmmClient(ILogger<DmmClient> logger, ConfigurationAccessor configuration)
     {
         _logger = logger;
-        _configurationProvider = configurationProvider ?? (() => Plugin.Instance?.Configuration);
+        _configuration = configuration;
     }
 
     /// <summary>
@@ -119,7 +119,7 @@ public sealed class DmmClient : IDisposable
     /// </summary>
     public async Task<string?> GetHtmlAsync(string url, CancellationToken cancellationToken)
     {
-        var configuration = _configurationProvider();
+        var configuration = _configuration.Current;
         var cacheMinutes = configuration?.CacheDurationMinutes ?? PluginConfiguration.DefaultCacheDurationMinutes;
 
         if (cacheMinutes > 0 && _cache.TryGetValue(url, out var cached))
@@ -160,7 +160,7 @@ public sealed class DmmClient : IDisposable
     /// </remarks>
     public async Task<DmmImage?> GetImageAsync(string url, CancellationToken cancellationToken)
     {
-        var configuration = _configurationProvider();
+        var configuration = _configuration.Current;
         var client = GetClient(configuration);
 
         await ThrottleAsync(configuration?.EffectiveRequestIntervalMs ?? PluginConfiguration.DefaultRequestIntervalMs, cancellationToken).ConfigureAwait(false);

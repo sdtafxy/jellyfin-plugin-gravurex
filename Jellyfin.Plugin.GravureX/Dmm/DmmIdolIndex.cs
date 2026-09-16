@@ -29,6 +29,7 @@ public sealed class DmmIdolIndex
     private static readonly Dictionary<string, DmmActor> EmptyIndex = new(StringComparer.Ordinal);
 
     private readonly DmmClient _client;
+    private readonly ConfigurationAccessor _configuration;
     private readonly ILogger<DmmIdolIndex> _logger;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
@@ -37,9 +38,10 @@ public sealed class DmmIdolIndex
     private DateTime _builtAt;
     private DateTime? _failedAt;
 
-    public DmmIdolIndex(DmmClient client, ILogger<DmmIdolIndex> logger)
+    public DmmIdolIndex(DmmClient client, ConfigurationAccessor configuration, ILogger<DmmIdolIndex> logger)
     {
         _client = client;
+        _configuration = configuration;
         _logger = logger;
     }
 
@@ -53,7 +55,7 @@ public sealed class DmmIdolIndex
             return null;
         }
 
-        if (!IsEnabled())
+        if (!IsEnabled)
         {
             return null;
         }
@@ -155,11 +157,11 @@ public sealed class DmmIdolIndex
 
     private bool IsFresh() => _byId is not null && DateTime.UtcNow - _builtAt < CacheWindow();
 
-    private static bool IsEnabled() => Plugin.Instance?.Configuration.EnableActorImages ?? true;
+    private bool IsEnabled => _configuration.Current?.EnableActorImages ?? true;
 
-    private static TimeSpan CacheWindow()
+    private TimeSpan CacheWindow()
     {
-        var days = Plugin.Instance?.Configuration.ActorIndexCacheDays ?? 7;
+        var days = _configuration.Current?.ActorIndexCacheDays ?? 7;
         return TimeSpan.FromDays(Math.Clamp(days, 0, 30));
     }
 }

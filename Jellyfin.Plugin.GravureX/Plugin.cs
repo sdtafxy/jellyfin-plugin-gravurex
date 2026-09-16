@@ -75,6 +75,7 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
 {
     public void RegisterServices(IServiceCollection serviceCollection, MediaBrowser.Controller.IServerApplicationHost applicationHost)
     {
+        serviceCollection.AddSingleton<ConfigurationAccessor>();
         serviceCollection.AddSingleton<DmmClient>();
         serviceCollection.AddSingleton<DmmIdolIndex>();
         serviceCollection.AddSingleton<ContentNumberResolver>();

@@ -15,29 +15,36 @@ namespace Jellyfin.Plugin.GravureX.Dmm;
 public sealed partial class ContentNumberResolver
 {
     private readonly DmmClient _client;
+    private readonly ConfigurationAccessor _configuration;
     private readonly ILogger<ContentNumberResolver> _logger;
 
-    public ContentNumberResolver(DmmClient client, ILogger<ContentNumberResolver> logger)
+    public ContentNumberResolver(DmmClient client, ConfigurationAccessor configuration, ILogger<ContentNumberResolver> logger)
     {
         _client = client;
+        _configuration = configuration;
         _logger = logger;
     }
 
     /// <summary>
-    /// Returns the content id for <paramref name="contentNumber"/>, or null when unresolved.
+    /// Every edition of a content number that the search turns up, in the order
+    /// the listing returned them.
     /// </summary>
-    public async Task<string?> ResolveAsync(string? contentNumber, CancellationToken cancellationToken)
+    /// <remarks>
+    /// One number maps to several products: a plain DVD, a Blu-ray, and limited or
+    /// bonus editions that add a photo set. Callers decide which of them to use —
+    /// see <see cref="PickStandard"/>.
+    /// </remarks>
+    public async Task<IReadOnlyList<DmmSearchItem>> FindEditionsAsync(string? contentNumber, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(contentNumber))
         {
-            return null;
+            return Array.Empty<DmmSearchItem>();
         }
 
-        var searchEnabled = Plugin.Instance?.Configuration.EnableSearchEndpoint ?? true;
-        if (!searchEnabled)
+        if (!(_configuration.Current?.EnableSearchEndpoint ?? true))
         {
             _logger.LogDebug("GravureX: search endpoint disabled, cannot resolve {Number}", contentNumber);
-            return null;
+            return Array.Empty<DmmSearchItem>();
         }
 
         // DMM only recognises the hyphen in its own position, so a file name such as
@@ -52,35 +59,63 @@ public sealed partial class ContentNumberResolver
 
         if (items.Count == 0)
         {
-            return null;
+            return Array.Empty<DmmSearchItem>();
         }
 
         var candidates = BuildCandidates(contentNumber);
         var matches = items
-            .Where(item => candidates.Any(candidate => Normalize(item.ContentId).EndsWith(candidate, StringComparison.Ordinal)))
+            .Where(item => MatchesNumber(item.ContentId, candidates))
             .ToList();
 
         if (matches.Count == 0)
         {
             _logger.LogDebug("GravureX: no search result matched {Number}", contentNumber);
+            return Array.Empty<DmmSearchItem>();
+        }
+
+        _logger.LogDebug(
+            "GravureX: {Number} matched {Count} edition(s): {Editions}",
+            contentNumber,
+            matches.Count,
+            string.Join(", ", matches.Select(m => $"{m.ContentId} rank {m.EditionRank}")));
+
+        return matches;
+    }
+
+    /// <summary>
+    /// The plainest edition of those found: the plain DVD first, then a plain
+    /// Blu-ray, then a limited or bonus disc. Ties keep the listing order, so the
+    /// source's own ranking decides.
+    /// </summary>
+    public static DmmSearchItem PickStandard(IReadOnlyList<DmmSearchItem> editions) =>
+        editions.OrderBy(edition => edition.EditionRank).First();
+
+    /// <summary>
+    /// Resolves a content number to a single content id, for an automatic scan.
+    /// </summary>
+    /// <remarks>
+    /// An automatic scan has no way to ask which edition is wanted, so it always
+    /// takes the plainest one — the plain DVD, failing that a plain Blu-ray, and
+    /// only a limited or bonus edition when nothing plainer exists. The
+    /// <see cref="PluginConfiguration.PreferStandardEdition"/> setting therefore
+    /// governs the manual search list rather than this.
+    /// </remarks>
+    public async Task<string?> ResolveAsync(string? contentNumber, CancellationToken cancellationToken)
+    {
+        var editions = await FindEditionsAsync(contentNumber, cancellationToken).ConfigureAwait(false);
+        if (editions.Count == 0)
+        {
             return null;
         }
 
-        if (Plugin.Instance?.Configuration.PreferStandardEdition ?? true)
-        {
-            var standard = matches
-                .Where(m => !IsSpecialEdition(m.ContentId))
-                .OrderBy(m => m.ContentId.Length)
-                .ToList();
+        var selected = PickStandard(editions);
 
-            if (standard.Count > 0)
-            {
-                matches = standard;
-            }
-        }
+        _logger.LogInformation(
+            "GravureX: resolved {Number} to {ContentId} out of {Count} edition(s)",
+            contentNumber,
+            selected.ContentId,
+            editions.Count);
 
-        var selected = matches.OrderBy(m => m.ContentId.Length).First();
-        _logger.LogInformation("GravureX: resolved {Number} to {ContentId}", contentNumber, selected.ContentId);
         return selected.ContentId;
     }
 
@@ -156,6 +191,21 @@ public sealed partial class ContentNumberResolver
         }
     }
 
+    /// <summary>
+    /// True when a content id carries the given number.
+    /// </summary>
+    /// <remarks>
+    /// A limited or bonus edition is the same number with a short marker appended
+    /// to the whole id — <c>n_1234abcd5678tk</c> for <c>abcd5678</c> — so the marker
+    /// has to come off before the id can be compared. Without this the bonus
+    /// editions were never matched at all, and only ever one edition was found.
+    /// </remarks>
+    private static bool MatchesNumber(string contentId, IReadOnlyList<string> candidates)
+    {
+        var normalized = BonusSuffixRegex().Replace(Normalize(contentId), string.Empty);
+        return candidates.Any(candidate => normalized.EndsWith(candidate, StringComparison.Ordinal));
+    }
+
     private static IReadOnlyList<string> BuildCandidates(string contentNumber)
     {
         var normalized = Normalize(contentNumber);
@@ -178,11 +228,6 @@ public sealed partial class ContentNumberResolver
         return candidates.Distinct(StringComparer.Ordinal).ToList();
     }
 
-    private static bool IsSpecialEdition(string contentId) =>
-        contentId.EndsWith("tk", StringComparison.OrdinalIgnoreCase)
-        || contentId.EndsWith("bt", StringComparison.OrdinalIgnoreCase)
-        || contentId.EndsWith("btk", StringComparison.OrdinalIgnoreCase);
-
     private static string Normalize(string value) =>
         new string(value.Where(char.IsLetterOrDigit).ToArray()).ToLowerInvariant();
 
@@ -191,6 +236,10 @@ public sealed partial class ContentNumberResolver
 
     [GeneratedRegex(@"^[a-z]{2,10}\d{2,8}$", RegexOptions.IgnoreCase)]
     private static partial Regex ContentNumberRegex();
+
+    // A bonus edition appends a short marker to the whole content id.
+    [GeneratedRegex(@"(?:tk|btk|bt)$", RegexOptions.IgnoreCase)]
+    private static partial Regex BonusSuffixRegex();
 
     [GeneratedRegex(@"^(?<letters>[a-z]+)(?<digits>\d+)$", RegexOptions.IgnoreCase)]
     private static partial Regex SplitNumberRegex();

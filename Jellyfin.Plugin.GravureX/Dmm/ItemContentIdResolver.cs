@@ -28,8 +28,28 @@ public sealed class ItemContentIdResolver
     }
 
     /// <summary>
-    /// Resolves the content id, and reports the content number the item's names
-    /// carried so it can be put in front of the title.
+    /// The content id an earlier lookup stored on the item, if there is one.
+    /// </summary>
+    public static string? FindStoredId(IReadOnlyDictionary<string, string>? providerIds)
+    {
+        if (providerIds is null)
+        {
+            return null;
+        }
+
+        foreach (var key in Plugin.ContentIdKeys)
+        {
+            if (providerIds.TryGetValue(key, out var stored) && !string.IsNullOrWhiteSpace(stored))
+            {
+                return stored.Trim();
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// The content id an item resolves to, and the content number its names carried.
     /// </summary>
     public async Task<ContentIdLookup> ResolveAsync(
         IReadOnlyDictionary<string, string>? providerIds,
@@ -38,19 +58,13 @@ public sealed class ItemContentIdResolver
     {
         var candidate = ReadCandidate(names);
 
-        if (providerIds is not null)
+        if (FindStoredId(providerIds) is { } stored)
         {
-            foreach (var key in Plugin.ContentIdKeys)
-            {
-                if (providerIds.TryGetValue(key, out var stored) && !string.IsNullOrWhiteSpace(stored))
-                {
-                    _logger.LogDebug(
-                        "GravureX: using stored provider id {Id}, file name number {Number}",
-                        stored,
-                        candidate?.Number ?? "(none)");
-                    return new ContentIdLookup(stored.Trim(), candidate?.Number);
-                }
-            }
+            _logger.LogDebug(
+                "GravureX: using stored provider id {Id}, file name number {Number}",
+                stored,
+                candidate?.Number ?? "(none)");
+            return new ContentIdLookup(stored, candidate?.Number);
         }
 
         if (candidate is not { } found)
@@ -96,7 +110,7 @@ public sealed class ItemContentIdResolver
     /// <summary>
     /// Reads the first usable content number or content id out of the item's names.
     /// </summary>
-    private static (string Token, string? Number, bool IsFullContentId)? ReadCandidate(IEnumerable<string?> names)
+    public static (string Token, string? Number, bool IsFullContentId)? ReadCandidate(IEnumerable<string?> names)
     {
         foreach (var source in names)
         {

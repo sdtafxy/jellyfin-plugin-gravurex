@@ -15,13 +15,22 @@ namespace Jellyfin.Plugin.GravureX.Providers;
 public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrder
 {
     private readonly DmmClient _client;
+    private readonly ContentNumberResolver _resolver;
     private readonly ItemContentIdResolver _contentIds;
+    private readonly ConfigurationAccessor _configuration;
     private readonly ILogger<MovieProvider> _logger;
 
-    public MovieProvider(DmmClient client, ItemContentIdResolver contentIds, ILogger<MovieProvider> logger)
+    public MovieProvider(
+        DmmClient client,
+        ContentNumberResolver resolver,
+        ItemContentIdResolver contentIds,
+        ConfigurationAccessor configuration,
+        ILogger<MovieProvider> logger)
     {
         _client = client;
+        _resolver = resolver;
         _contentIds = contentIds;
+        _configuration = configuration;
         _logger = logger;
     }
 
@@ -29,37 +38,66 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
 
     public int Order => 1;
 
+    /// <summary>
+    /// Offers the editions of a title that the user can choose between.
+    /// </summary>
+    /// <remarks>
+    /// One content number maps to several products: the plain DVD, a Blu-ray, and
+    /// limited or bonus editions that add a photo set. With
+    /// <see cref="Configuration.PluginConfiguration.PreferStandardEdition"/> on, only
+    /// the plainest edition is offered. With it off every edition is offered, which
+    /// is what a manual search needs, and the plainest one is listed first either
+    /// way. A stored id, or a full content id in the file name, pinpoints one
+    /// product, so that single edition is offered on its own.
+    /// </remarks>
     public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(MovieInfo searchInfo, CancellationToken cancellationToken)
     {
-        var lookup = await ResolveAsync(searchInfo, cancellationToken).ConfigureAwait(false);
-        var contentId = lookup.ContentId;
-        if (!string.IsNullOrEmpty(contentId))
+        var candidate = ItemContentIdResolver.ReadCandidate(
+            ItemContentIdResolver.NamesFrom(searchInfo.Name, searchInfo.Path));
+
+        var exact = ItemContentIdResolver.FindStoredId(searchInfo.ProviderIds)
+                    ?? (candidate is { IsFullContentId: true } full ? full.Token : null);
+
+        if (!string.IsNullOrEmpty(exact))
         {
-            var title = await _client.GetTitleAsync(contentId, cancellationToken).ConfigureAwait(false);
-            if (title is not null)
+            var exactTitle = await _client.GetTitleAsync(exact, cancellationToken).ConfigureAwait(false);
+            if (exactTitle is not null)
             {
-                return new[] { ToSearchResult(title) };
+                return new[] { ToSearchResult(exactTitle) };
             }
         }
 
+        if (candidate?.Number is { Length: > 0 } number)
+        {
+            var editions = await _resolver.FindEditionsAsync(number, cancellationToken).ConfigureAwait(false);
+            if (editions.Count > 0)
+            {
+                var preferStandard = _configuration.Current?.PreferStandardEdition ?? true;
+
+                _logger.LogInformation(
+                    "GravureX: offering {Offered} of {Total} edition(s) for {Number} (standard preferred {Preferred})",
+                    preferStandard ? 1 : editions.Count,
+                    editions.Count,
+                    number,
+                    preferStandard);
+
+                IReadOnlyList<DmmSearchItem> offered = preferStandard
+                    ? new[] { ContentNumberResolver.PickStandard(editions) }
+                    : editions.OrderBy(edition => edition.EditionRank).ToList();
+
+                return offered.Select(ToSearchResult).ToList();
+            }
+        }
+
+        // Nothing in the file name identified a product, so fall back to searching
+        // with whatever name the item has.
         if (string.IsNullOrWhiteSpace(searchInfo.Name))
         {
             return Enumerable.Empty<RemoteSearchResult>();
         }
 
         var items = await _client.SearchAsync(searchInfo.Name, cancellationToken).ConfigureAwait(false);
-        return items.Select(item => new RemoteSearchResult
-        {
-            Name = item.Title,
-            SearchProviderName = Name,
-            ImageUrl = item.ImageUrl,
-            PremiereDate = item.ReleaseDate,
-            ProductionYear = item.ReleaseDate?.Year,
-            ProviderIds = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-            {
-                [Plugin.ProviderKey] = item.ContentId
-            }
-        }).ToList();
+        return items.Select(ToSearchResult).ToList();
     }
 
     public async Task<MetadataResult<Movie>> GetMetadata(MovieInfo info, CancellationToken cancellationToken)
@@ -82,7 +120,7 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
             return result;
         }
 
-        var configuration = Plugin.Instance?.Configuration;
+        var configuration = _configuration.Current;
         var movie = result.Item;
 
         var baseTitle = string.IsNullOrEmpty(title.CleanTitle) ? title.Title : title.CleanTitle;
@@ -175,6 +213,22 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
     /// </summary>
     public Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken cancellationToken)
         => Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.NotFound));
+
+    /// <summary>
+    /// Builds a search result from a listing entry the user can pick.
+    /// </summary>
+    private static RemoteSearchResult ToSearchResult(DmmSearchItem item) => new()
+    {
+        Name = item.Title,
+        SearchProviderName = Plugin.DisplayName,
+        ImageUrl = item.ImageUrl,
+        PremiereDate = item.ReleaseDate,
+        ProductionYear = item.ReleaseDate?.Year,
+        ProviderIds = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            [Plugin.ProviderKey] = item.ContentId
+        }
+    };
 
     private static RemoteSearchResult ToSearchResult(DmmTitle title) => new()
     {

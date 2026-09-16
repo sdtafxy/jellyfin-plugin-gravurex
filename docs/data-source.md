@@ -112,14 +112,31 @@ number. Because DMM zero-pads the numeric part differently per maker, padded
 variants are tried as well. If the normalised query returns nothing, the raw
 number is tried once as a fallback.
 
-Multiple editions share one content number and are distinguished by a suffix:
+### Editions
 
-| Suffix | Meaning |
-|---|---|
-| *(none)* | Standard edition |
-| `tk` | Limited / bonus edition |
+One number maps to several products, and the listing distinguishes them. Measured on
+one title, four entries came back for the same number:
 
-When **Prefer the standard edition** is enabled, the plain release wins.
+| Content id | Edition | Rank |
+|---|---|---|
+| `ab12345` | Plain DVD | 0 |
+| `9ab12345` | Plain Blu-ray, marked （ブルーレイディスク） in the title | 1 |
+| `tkab12345` | DMM limited DVD, marked 【DMM限定】…生写真3枚付き | 2 |
+| `k9ab12345` | Limited Blu-ray with a photo set, marked 【数量限定】…チェキセット | 3 |
+
+Two signals are needed, because either can turn up on its own:
+
+- The listing title carries the marker: 数量限定, 限定, チェキ, 生写真, 特典, 初回
+- Otherwise the maker appends a short marker to the **whole** content id, so the id
+  ends with `tk`, `bt` or `btk` (`n_1234abcd5678` → `n_1234abcd5678tk`). That marker
+  has to be stripped before the number can be matched against the id at all,
+  otherwise the bonus editions are never found and only one edition is ever offered
+
+The rank orders plain DVD, plain Blu-ray, limited DVD, limited Blu-ray, so a plain disc
+always beats a limited one. An automatic scan takes the lowest rank — it has no way to
+ask which edition is wanted. A manual search lists every edition, and the plainest one
+first, unless **Prefer the standard edition** is on, in which case only that one is
+listed.
 
 ## Performers
 

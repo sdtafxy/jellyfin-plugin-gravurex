@@ -15,20 +15,19 @@ Focused on the gravure idol category · Read from public product pages · No API
 
 </div>
 
-## Features
+## ✨ Features
 
-| | |
-|---|---|
-| **Metadata** | Title, overview, release date, runtime, maker, genres, JAN barcode, rating, performers and director |
-| **Content number in the title** | Results read as `AB123-4567 タイトル`. The number comes from your file name, keeping whichever hyphen position you use |
-| **All three image types** | Poster, backdrop and thumbnail are always supplied, so no slot is left empty |
-| **Performers** | Canonical name, kana reading and actor id, plus a portrait where the source publishes one |
-| **Lenient matching** | `AB123-4567`, `ab1234567`, `AB-1234567` and `n_1234abcd5678` all resolve |
-| **Network control** | HTTP proxy, request throttling, timeout and page caching, with defaults that are gentle on the source |
+- 📋 **Metadata** — title, overview, release date, runtime, maker, genres, JAN barcode, rating, performers and director
+- 🔢 **Content number in the title** — results read as `AB123-4567 タイトル`. The number comes from your file name, keeping whichever hyphen position you use
+- 🖼️ **All three image types** — poster, backdrop and thumbnail are always supplied, so no slot is left empty
+- 🎭 **Performers** — canonical name, kana reading and actor id, plus a portrait where the source publishes one
+- 🔍 **Lenient matching** — `AB123-4567`, `ab1234567`, `AB-1234567` and `n_1234abcd5678` all resolve
+- 💿 **Editions told apart** — when a number has a plain, a Blu-ray and a limited edition, a scan takes the plain one and a manual search shows them all
+- 🌐 **Network control** — HTTP proxy, request throttling, timeout and page caching, with defaults that are gentle on the source
 
 Metadata is kept in Japanese as published, and is not translated.
 
-## Requirements
+## ✅ Requirements
 
 | Item | Requirement |
 |---|---|
@@ -36,7 +35,7 @@ Metadata is kept in Japanese as published, and is not translated.
 | **Runtime** | .NET 9.0, bundled with Jellyfin 10.11 — nothing to install |
 | **Network** | Access to `dmm.com` and `pics.dmm.com`. Set the HTTP proxy in the plugin settings if the server cannot reach them directly |
 
-## Installation
+## 🚀 Installation
 
 ### From the plugin repository (recommended)
 
@@ -70,7 +69,7 @@ dotnet publish Jellyfin.Plugin.GravureX/Jellyfin.Plugin.GravureX.csproj \
 Copy the contents of `./artifacts` into `plugins/Jellyfin.Plugin.GravureX/`.
 </details>
 
-## Settings
+## ⚙️ Settings
 
 Everything lives under **Dashboard → Plugins → GravureX**.
 
@@ -83,7 +82,7 @@ Everything lives under **Dashboard → Plugins → GravureX**.
 | Cache duration | `1440` min | `0` disables the cache |
 | Resolve content numbers via search | on | Required to match content numbers; not needed when file names carry a full content id |
 | Put the content number in front of the title | on | Results read as `AB123-4567 タイトル` |
-| Prefer the standard edition | on | Picks the plain release when several editions exist |
+| Prefer the standard edition | on | On: only the plainest edition is used. Off: a manual search lists every edition (plain, Blu-ray, limited bonus); an automatic scan always takes the plain one |
 | Store the JAN barcode | on | |
 | Import genres | on | |
 | Add the series as a tag | on | The media type is added too when the page publishes one |
@@ -92,7 +91,7 @@ Everything lives under **Dashboard → Plugins → GravureX**.
 | Look up performer portraits | on | See the note below |
 | Performer index cache | `7` days | Rebuilding costs about fourteen requests |
 
-## File naming
+## 📝 File naming
 
 The content number or the full content id is read from the file name, falling back to the containing folder name.
 
@@ -106,7 +105,7 @@ The content number or the full content id is read from the file name, falling ba
 
 Hyphens are ignored while matching, so they may sit wherever you prefer. Zero padding is tolerated as well, because the source pads the numeric part differently per maker. When several editions of a title exist, the standard edition is preferred.
 
-## Notes
+## 💡 Notes
 
 > [!TIP]
 > **Refresh with "Replace all images" on the first scrape.** An automatic scan takes one image per type — the cropped front cover for the poster, the package spread for backdrop and thumbnail — so replacing guarantees all three are written. The manual picker lists every image the plugin offers.
@@ -120,6 +119,6 @@ When troubleshooting, open **Dashboard → Logs** and search for `GravureX` to s
 
 Implementation details — image URL patterns, field mapping and so on — are in [docs/data-source.md](docs/data-source.md).
 
-## Licence
+## 📄 Licence
 
 [MIT](LICENSE)

@@ -29,17 +29,20 @@ public class ImageProvider : IRemoteImageProvider, IHasOrder
     private readonly DmmClient _client;
     private readonly ItemContentIdResolver _contentIds;
     private readonly DmmIdolIndex _idolIndex;
+    private readonly ConfigurationAccessor _configuration;
     private readonly ILogger<ImageProvider> _logger;
 
     public ImageProvider(
         DmmClient client,
         ItemContentIdResolver contentIds,
         DmmIdolIndex idolIndex,
+        ConfigurationAccessor configuration,
         ILogger<ImageProvider> logger)
     {
         _client = client;
         _contentIds = contentIds;
         _idolIndex = idolIndex;
+        _configuration = configuration;
         _logger = logger;
     }
 
@@ -131,8 +134,8 @@ public class ImageProvider : IRemoteImageProvider, IHasOrder
     /// </remarks>
     private List<RemoteImageInfo> BuildImages(DmmTitle title)
     {
-        var maxPreviews = Plugin.Instance?.Configuration.EffectiveMaxPreviewImages
-                         ?? PluginConfiguration.UnlimitedPreviewImages;
+        var maxPreviews = _configuration.Current?.EffectiveMaxPreviewImages
+                          ?? PluginConfiguration.UnlimitedPreviewImages;
 
         var previews = title.GalleryImageUrls
             .Take(maxPreviews)

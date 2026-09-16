@@ -112,4 +112,17 @@ public sealed class DmmSearchItem
     public string? ImageUrl { get; set; }
 
     public DateTime? ReleaseDate { get; set; }
+
+    /// <summary>True when the listing marks the entry as a limited or bonus edition.</summary>
+    public bool IsLimited { get; set; }
+
+    /// <summary>True when the entry is the Blu-ray release of the same title.</summary>
+    public bool IsBluRay { get; set; }
+
+    /// <summary>
+    /// How far this entry sits from the plain release, lower being plainer. The
+    /// plain DVD is 0, a plain Blu-ray 1, a limited DVD 2 and a limited Blu-ray 3,
+    /// so a plain disc always wins over a limited or bonus one.
+    /// </summary>
+    public int EditionRank => (IsLimited ? 2 : 0) + (IsBluRay ? 1 : 0);
 }

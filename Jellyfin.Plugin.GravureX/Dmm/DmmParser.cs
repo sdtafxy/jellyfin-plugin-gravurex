@@ -43,14 +43,17 @@ public static partial class DmmParser
 
             var imageNode = anchor.SelectSingleNode(".//img");
             var titleNode = anchor.SelectSingleNode(".//span[contains(@class,'txt')]");
+            var title = HtmlEntity.DeEntitize(titleNode?.InnerText ?? anchor.GetAttributeValue("title", string.Empty)).Trim();
 
             var item = new DmmSearchItem
             {
                 ContentId = contentId,
-                Title = HtmlEntity.DeEntitize(titleNode?.InnerText ?? anchor.GetAttributeValue("title", string.Empty)).Trim(),
+                Title = title,
                 ImageUrl = ToLargePackageImage(NormalizeImageUrl(
                     imageNode?.GetAttributeValue("src", null) ?? imageNode?.GetAttributeValue("data-lazy", null))),
-                ReleaseDate = ParseDate(ParseListingDate(anchor.SelectSingleNode("ancestor::li[1]") ?? anchor.ParentNode))
+                ReleaseDate = ParseDate(ParseListingDate(anchor.SelectSingleNode("ancestor::li[1]") ?? anchor.ParentNode)),
+                IsLimited = IsLimitedEdition(title, contentId),
+                IsBluRay = IsBluRayEdition(title)
             };
 
             results.Add(item);
@@ -555,6 +558,21 @@ public static partial class DmmParser
     }
 
     /// <summary>
+    /// True when a listing entry looks like a limited or bonus edition.
+    /// </summary>
+    /// <remarks>
+    /// The listing says so in the title — 【数量限定】, チェキ付き, 【DMM限定】,
+    /// 生写真3枚付き — and makers that append the bonus to the content id instead
+    /// do it with a short suffix. Both signals are needed: a maker can mark an
+    /// edition either way, and a Blu-ray of the same title is neither.
+    /// </remarks>
+    private static bool IsLimitedEdition(string title, string contentId) =>
+        LimitedEditionRegex().IsMatch(title) || BonusSuffixRegex().IsMatch(contentId);
+
+    /// <summary>True when the entry is the Blu-ray release of the same title.</summary>
+    private static bool IsBluRayEdition(string title) => BluRayRegex().IsMatch(title);
+
+    /// <summary>
     /// Upgrades a package thumbnail to the package spread published under the same
     /// name: the listing and the gallery only ever expose the small one.
     /// </summary>
@@ -627,6 +645,17 @@ public static partial class DmmParser
     // A listing entry prints its release date as 発売日：yyyy/MM/dd.
     [GeneratedRegex(@"発売日[：:]\s*(?<date>\d{4}/\d{1,2}/\d{1,2})", RegexOptions.None)]
     private static partial Regex ListingDateRegex();
+
+    // Markers the listing prints in the title of a limited or bonus edition.
+    [GeneratedRegex(@"数量限定|限定|チェキ|生写真|特典|初回", RegexOptions.None)]
+    private static partial Regex LimitedEditionRegex();
+
+    // Makers that mark an edition on the content id rather than in the title.
+    [GeneratedRegex(@"(?:tk|btk|bt)$", RegexOptions.IgnoreCase)]
+    private static partial Regex BonusSuffixRegex();
+
+    [GeneratedRegex(@"ブルーレイ|Blu-?ray|Blue-?ray", RegexOptions.IgnoreCase)]
+    private static partial Regex BluRayRegex();
 
     [GeneratedRegex(@"cid=(?<cid>[A-Za-z0-9_\-]+)", RegexOptions.IgnoreCase)]
     private static partial Regex ContentIdRegex();
