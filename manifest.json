@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/sdtafxy/jellyfin-plugin-gravurex/main/assets/logo.png",
     "versions": [
       {
+        "version": "0.1.2.0",
+        "changelog": "完整识别同一番号的多个版本：修正带后缀的限定版以前匹配不上的问题，自动刮削固定取通常版， 手动搜索在关闭「优先选择通常版」时列出全部版本供挑选。README 特色栏目改用 emoji 列表。",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/sdtafxy/jellyfin-plugin-gravurex/releases/download/v0.1.2/jellyfin-plugin-gravurex.zip",
+        "checksum": "242d744a98a1c8df1a4e5213c6918b32",
+        "timestamp": "2026-09-16T12:06:08Z"
+      },
+      {
         "version": "0.1.1.0",
         "changelog": "修正图片 URL 标记里残留的旧插件名；搜索结果补上发售日期并改用套图大图；演员索引不再把 一次失败的抓取缓存满整个周期；README 拆分为中英两份，其余为一批遗留问题的清理。",
         "targetAbi": "10.11.0.0",
