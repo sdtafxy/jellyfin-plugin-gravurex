@@ -6,10 +6,16 @@
 
 Focused on the gravure idol category · Read from public product pages · No API key or login
 
-[![Jellyfin](https://img.shields.io/badge/Jellyfin-10.11-00A4DC?logo=jellyfin&logoColor=white)](https://jellyfin.org)
-[![.NET](https://img.shields.io/badge/.NET-9.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com)
-[![Release](https://img.shields.io/github/v/release/sdtafxy/jellyfin-plugin-gravurex?label=release&color=FF6B6B)](https://github.com/sdtafxy/jellyfin-plugin-gravurex/releases)
-[![License](https://img.shields.io/badge/license-MIT-22C55E)](LICENSE)
+[![Jellyfin](https://img.shields.io/badge/Jellyfin-10.11.x-00A4DC?style=for-the-badge&logo=jellyfin&logoColor=white)](https://jellyfin.org)
+[![.NET](https://img.shields.io/badge/.NET-9.0-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)](https://dotnet.microsoft.com)
+[![C#](https://img.shields.io/badge/C%23-239120?style=for-the-badge&logo=csharp&logoColor=white)](https://learn.microsoft.com/dotnet/csharp/)
+[![License](https://img.shields.io/badge/License-MIT-22C55E?style=for-the-badge&logo=opensourceinitiative&logoColor=white)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/sdtafxy/jellyfin-plugin-gravurex?style=for-the-badge&label=Release&color=FF6B6B)](https://github.com/sdtafxy/jellyfin-plugin-gravurex/releases)
+[![Build](https://img.shields.io/github/actions/workflow/status/sdtafxy/jellyfin-plugin-gravurex/build.yml?style=for-the-badge&label=Build&logo=githubactions&logoColor=white)](https://github.com/sdtafxy/jellyfin-plugin-gravurex/actions)
+[![Downloads](https://img.shields.io/github/downloads/sdtafxy/jellyfin-plugin-gravurex/total?style=for-the-badge&label=Downloads&logo=github&logoColor=white&color=0EA5E9)](https://github.com/sdtafxy/jellyfin-plugin-gravurex/releases)
+[![Last commit](https://img.shields.io/github/last-commit/sdtafxy/jellyfin-plugin-gravurex?style=for-the-badge&label=Last%20commit&logo=git&logoColor=white&color=8B5CF6)](https://github.com/sdtafxy/jellyfin-plugin-gravurex/commits/main)
+[![Metadata](https://img.shields.io/badge/Metadata-Japanese-EF4444?style=for-the-badge)](https://github.com/sdtafxy/jellyfin-plugin-gravurex)
+[![API key](https://img.shields.io/badge/API%20key-not%20required-16A34A?style=for-the-badge)](https://github.com/sdtafxy/jellyfin-plugin-gravurex)
 
 [简体中文](README.md) · **English**
 
