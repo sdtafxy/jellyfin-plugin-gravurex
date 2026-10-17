@@ -12,7 +12,7 @@
 [![License](https://img.shields.io/badge/License-MIT-22C55E?style=for-the-badge&logo=opensourceinitiative&logoColor=white)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/sdtafxy/jellyfin-plugin-gravurex?style=for-the-badge&label=Release&color=FF6B6B)](https://github.com/sdtafxy/jellyfin-plugin-gravurex/releases)
 [![Build](https://img.shields.io/github/actions/workflow/status/sdtafxy/jellyfin-plugin-gravurex/build.yml?style=for-the-badge&label=Build&logo=githubactions&logoColor=white)](https://github.com/sdtafxy/jellyfin-plugin-gravurex/actions)
-[![Downloads](https://img.shields.io/github/downloads/sdtafxy/jellyfin-plugin-gravurex/total?style=for-the-badge&label=Downloads&logo=github&logoColor=white&color=0EA5E9)](https://github.com/sdtafxy/jellyfin-plugin-gravurex/releases)
+[![Downloads](https://img.shields.io/github/downloads/sdtafxy/jellyfin-plugin-gravurex/latest/total?style=for-the-badge&label=Downloads&logo=github&logoColor=white&color=0EA5E9)](https://github.com/sdtafxy/jellyfin-plugin-gravurex/releases)
 [![Last commit](https://img.shields.io/github/last-commit/sdtafxy/jellyfin-plugin-gravurex?style=for-the-badge&label=Last%20commit&logo=git&logoColor=white&color=8B5CF6)](https://github.com/sdtafxy/jellyfin-plugin-gravurex/commits/main)
 [![Metadata](https://img.shields.io/badge/Metadata-%E6%97%A5%E6%9C%AC%E8%AA%9E-EF4444?style=for-the-badge)](https://github.com/sdtafxy/jellyfin-plugin-gravurex)
 [![API key](https://img.shields.io/badge/API%20key-not%20required-16A34A?style=for-the-badge)](https://github.com/sdtafxy/jellyfin-plugin-gravurex)
