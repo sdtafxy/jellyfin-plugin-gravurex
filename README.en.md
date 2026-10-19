@@ -2,9 +2,9 @@
 
 <img src="assets/logo.png" width="560" alt="GravureX">
 
-**Metadata and artwork for Japanese DVD and Blu-ray releases, in Jellyfin**
+**Teach Jellyfin your content numbers**
 
-Focused on the gravure idol category · Read from public product pages · No API key or login
+Titles, performers, posters and preview images, in one scrape. No API key, no login, nothing else to set up.
 
 [![Jellyfin](https://img.shields.io/badge/Jellyfin-10.11.x-00A4DC?style=for-the-badge&logo=jellyfin&logoColor=white)](https://jellyfin.org)
 [![.NET](https://img.shields.io/badge/.NET-9.0-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)](https://dotnet.microsoft.com)
@@ -21,110 +21,131 @@ Focused on the gravure idol category · Read from public product pages · No API
 
 </div>
 
-## ✨ Features
+## How it works
 
-- 📋 **Metadata** — title, overview, release date, runtime, maker, genres, JAN barcode, rating, performers and director
-- 🔢 **Content number in the title** — results read as `AB123-4567 タイトル`. The number comes from your file name, keeping whichever hyphen position you use
-- 🖼️ **All three image types** — poster, backdrop and thumbnail are always supplied, so no slot is left empty
-- 🎭 **Performers** — canonical name, kana reading and actor id, plus a portrait where the source publishes one
-- 🔍 **Lenient matching** — `AB123-4567`, `ab1234567`, `AB-1234567` and `n_1234abcd5678` all resolve
-- 💿 **Editions told apart** — when a number has a plain, a Blu-ray and a limited edition, a scan takes the plain one and a manual search shows them all
-- 🌐 **Network control** — HTTP proxy, request throttling, timeout and page caching, with defaults that are gentle on the source
+A file named `AB123-4567.mp4` is all it needs. The plugin looks that number up, finds the
+matching product, and writes the title as `AB123-4567 タイトル` — then fills in the
+performers, release date, runtime, studio and artwork.
 
-Metadata is kept in Japanese as published, and is not translated.
+One number often maps to several editions: plain, Blu-ray, and limited or bonus ones. An
+automatic scan takes the plainest; a manual search lets you pick whichever you want.
 
-## ✅ Requirements
+## What it does
 
-| Item | Requirement |
-|---|---|
-| **Jellyfin** | 10.11.x |
-| **Runtime** | .NET 9.0, bundled with Jellyfin 10.11 — nothing to install |
-| **Network** | Access to `dmm.com` and `pics.dmm.com`. Set the HTTP proxy in the plugin settings if the server cannot reach them directly |
+- **Metadata**: title, overview, release date, runtime, studio, genres, JAN barcode, rating, performers
+- **Content number in the title**: `AB123-4567 タイトル`, taken from the file name with your hyphen position kept
+- **All three image types**: poster, backdrop and thumbnail, with no empty slots
+- **Performers**: canonical name, kana reading and actor id, plus a portrait when the source has one
+- **Lenient matching**: `AB123-4567`, `ab1234567`, `AB-1234567` and `n_1234abcd5678` all work
+- **Network control**: proxy, throttling, timeout and caching, with defaults that are gentle on the source
 
-## 🚀 Installation
+## Before you start
 
-### From the plugin repository (recommended)
+- Jellyfin 10.11.x
+- .NET 9.0 — bundled with Jellyfin 10.11, nothing to install
+- The server needs to reach `dmm.com` and `pics.dmm.com`; if it can't, set a proxy in the plugin settings
 
-1. Open **Dashboard → Plugins → Repositories** and add the address below
+## Install
+
+1. Open **Dashboard → Plugins → Repositories** and add:
 
    ```
    https://raw.githubusercontent.com/sdtafxy/jellyfin-plugin-gravurex/main/manifest.json
    ```
 
-2. Open the **Catalog** tab, find **GravureX** under *Metadata* and install it
-3. **Restart Jellyfin**
+2. Go to the **Catalog** tab, find **GravureX** under Metadata and install it
+3. Restart Jellyfin
 4. Open **Dashboard → Plugins → GravureX** and configure it
-5. In your movie library, enable **GravureX** under metadata downloaders and image fetchers
+5. In your movie library, tick **GravureX** under metadata downloaders and image fetchers
 
-New versions then appear in the catalogue and can be installed in place.
-
-### Manual install
-
-1. Download `jellyfin-plugin-gravurex-*.zip` from [Releases](https://github.com/sdtafxy/jellyfin-plugin-gravurex/releases)
-2. Extract it into the Jellyfin `plugins` directory as `plugins/Jellyfin.Plugin.GravureX/`
-3. Restart Jellyfin, then configure the plugin and enable it in your library
+New versions show up in the catalog, so updating is a click.
 
 <details>
-<summary><b>Build from source</b></summary>
+<summary>Install without the plugin repository</summary>
+
+Grab the zip from [Releases](https://github.com/sdtafxy/jellyfin-plugin-gravurex/releases),
+extract it into `plugins/Jellyfin.Plugin.GravureX/`, and restart Jellyfin.
+</details>
+
+<details>
+<summary>Build it yourself</summary>
 
 ```bash
 dotnet publish Jellyfin.Plugin.GravureX/Jellyfin.Plugin.GravureX.csproj \
   -c Release -o ./artifacts
 ```
 
-Copy the contents of `./artifacts` into `plugins/Jellyfin.Plugin.GravureX/`.
+Then drop the contents into `plugins/Jellyfin.Plugin.GravureX/`.
 </details>
 
-## ⚙️ Settings
+## File names
 
-Everything lives under **Dashboard → Plugins → GravureX**.
+The content number is read from the file name, falling back to the folder above it.
 
-| Setting | Default | Description |
-|---|---|---|
-| HTTP proxy | *(empty)* | e.g. `http://127.0.0.1:7890`, for a server that cannot reach the source directly |
-| User agent | *(bundled)* | Empty uses the built-in default |
-| Minimum delay between requests | `1500` ms | Higher values are gentler; do not lower it |
-| Request timeout | `30` s | Per request |
-| Cache duration | `1440` min | `0` disables the cache |
-| Resolve content numbers via search | on | Required to match content numbers; not needed when file names carry a full content id |
-| Put the content number in front of the title | on | Results read as `AB123-4567 タイトル` |
-| Prefer the standard edition | on | On: only the plainest edition is used. Off: a manual search lists every edition (plain, Blu-ray, limited bonus); an automatic scan always takes the plain one |
-| Store the JAN barcode | on | |
-| Import genres | on | |
-| Add the series as a tag | on | The media type is added too when the page publishes one |
-| Add the director to the people | *off* | Off keeps the people list to the performers only |
-| Maximum preview images to offer | `50` | `0` means no limit; how many are saved is decided by the library's image limit |
-| Look up performer portraits | on | See the note below |
-| Performer index cache | `7` days | Rebuilding costs about fourteen requests |
+```
+AB123-4567.mp4          →  AB123-4567
+ab1234567.mp4           →  ab1234567
+AB-1234567.mp4          →  AB-1234567
+[AB123-4567] title.mp4  →  AB123-4567
+n_1234abcd5678.mp4      →  full content id, fetched directly
+```
 
-## 📝 File naming
+Hyphens can sit anywhere. Zero padding differs per studio, and that is handled too.
 
-The content number or the full content id is read from the file name, falling back to the containing folder name.
+## Settings
 
-| File name | Matched as |
-|---|---|
-| `AB123-4567.mp4` | content number `AB123-4567` |
-| `ab1234567.mp4` | content number `ab1234567` |
-| `AB-1234567.mp4` | content number `AB-1234567` |
-| `[AB123-4567] タイトル.mp4` | content number `AB123-4567` |
-| `n_1234abcd5678.mp4` | content id, fetched directly |
+All under **Dashboard → Plugins → GravureX**.
 
-Hyphens are ignored while matching, so they may sit wherever you prefer. Zero padding is tolerated as well, because the source pads the numeric part differently per maker. When several editions of a title exist, the standard edition is preferred.
+**Network**
 
-## 💡 Notes
+- **HTTP proxy** — set it when the server can't reach the source, e.g. `http://127.0.0.1:7890`
+- **User agent** — leave empty for the built-in one
+- **Request interval** — 1500 ms by default. Don't go too low; be nice to the source
+- **Request timeout** — 30 s by default
+- **Cache duration** — 1440 minutes by default, `0` turns caching off
+
+**Numbers and editions**
+
+- **Resolve content numbers via search** — on by default. Turn it off and file names have to carry the full content id
+- **Content number in front of the title** — on by default
+- **Prefer the standard edition** — on by default. Turn it off and a manual search lists every edition; an automatic scan still takes the plain one
+
+**Metadata**
+
+- **Import genres**, **series as a tag** — both on
+- **Store the JAN barcode** — on
+- **Add the director to the people** — off
+- **Maximum preview images** — 50 by default, `0` for no limit
+
+**Performers**
+
+- **Look up performer portraits** — on
+- **Performer index cache** — 7 days; a rebuild costs about fourteen requests
+
+## Two things worth knowing
 
 > [!TIP]
-> **Refresh with "Replace all images" on the first scrape.** An automatic scan takes one image per type — the cropped front cover for the poster, the package spread for backdrop and thumbnail — so replacing guarantees all three are written. The manual picker lists every image the plugin offers.
+> On the first scrape, refresh metadata with **Replace all images**. An automatic scan takes one image per type, so this is what writes all three.
 
 > [!NOTE]
-> **Pre-order titles often have no preview gallery**, so the backdrop and thumbnail fall back to the package spread.
->
-> **Most performers have no portrait.** The source publishes one for only a small subset, and it publishes no biography or birth date either.
+> When you change images by hand, every image the plugin offers is listed, including the full preview set.
 
-When troubleshooting, open **Dashboard → Logs** and search for `GravureX` to see what artwork each scrape offered; switch the log level to `Debug` to see every image URL.
+## What it can't do
 
-Implementation details — image URL patterns, field mapping and so on — are in [docs/data-source.md](docs/data-source.md).
+All of these are limits of the source, not bugs.
 
-## 📄 Licence
+- **Pre-orders have no preview gallery**, so the backdrop and thumbnail fall back to the package image
+- **Most performers have no portrait** — the source publishes them for a small subset only
+- **No biography or birthday** — the source doesn't have them
+- **Metadata stays in Japanese**, untranslated
 
-[MIT](LICENSE)
+## If something looks wrong
+
+Open **Dashboard → Logs** and search for `GravureX` to see what each scrape offered. If that
+doesn't explain it, set the log level to `Debug` and every image URL is printed.
+
+Implementation details (image URL patterns, field mapping) are in [docs/data-source.md](docs/data-source.md).
+
+## Licence
+
+MIT
